@@ -28,7 +28,7 @@ Siga estes passos **exatamente** pela ordem indicada. É necessário ter o **Doc
 ### 1. Clonar o Repositório
 
 ```bash
-git clone <URL_DO_SEU_REPOSITORIO>
+git clone https://github.com/LeandroJrMarques/Nola-God-level
 cd <NOME_DA_PASTA_DO_PROJETO>
 ````
 
