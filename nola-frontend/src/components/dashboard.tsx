@@ -13,7 +13,7 @@ import {
 
 
 type KpiData = {
-  totalRevenue: string; // Mantém string, pois a API retorna assim
+  totalRevenue: string; 
   totalSales: string;
   averageTicket: string;
   cancellationRate: string;

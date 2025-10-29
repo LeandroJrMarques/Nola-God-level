@@ -193,12 +193,12 @@ function Explore() {
           <select value={reportType} onChange={e => setReportType(e.target.value)}>
             <option value="top-products">Top Produtos (Receita)</option>
             <option value="average-ticket">Ticket Médio</option>
-            {/* CORRIGIDO: Removido 'value_disabled' e usado 'value' */}
+            {}
             <option value="delivery-performance">Performance de Entrega (Tempo)</option>
           </select>
         </div>
 
-        {/* ADICIONADO O DROPDOWN "AGRUPAR POR" */}
+        {}
         <div className="filter-group">
           <label>2. Agrupar Resultados Por</label>
           <select value={groupBy} onChange={e => setGroupBy(e.target.value)}>
@@ -219,7 +219,7 @@ function Explore() {
           </div>
         </div>
 
-        {/* Filtros Opcionais (Loja / Canal) - CORRIGIDO (removida duplicação) */}
+        {/* Filtros Opcionais (Loja / Canal)  */}
         <div className="filter-group">
           <label>4. Filtros Adicionais (Opcional)</label>
           <div className="optional-filters">

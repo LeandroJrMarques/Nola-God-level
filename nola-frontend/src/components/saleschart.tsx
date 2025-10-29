@@ -2,7 +2,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 type ChartData = {
   date: string;
-  faturamento: string; // 1. Espera string
+  faturamento: string; 
 };
 
 type SalesChartProps = {
@@ -13,7 +13,6 @@ function SalesChart({ data }: SalesChartProps) {
   
   const formattedData = data.map(item => ({
     name: new Date(item.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit' }),
-    // 2. Converte a string para número para o gráfico entender
     faturamento: parseFloat(item.faturamento) 
   }));
   
@@ -42,7 +41,6 @@ function SalesChart({ data }: SalesChartProps) {
           <Tooltip 
             contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px' }}
             labelStyle={{ color: '#f9fafb' }}
-            // 3. 'value' aqui agora é um número, então está correto
             formatter={(value: number) => [value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 'Faturamento']}
             labelFormatter={(label) => `Dia: ${label}`}
           />

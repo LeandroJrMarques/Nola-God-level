@@ -50,16 +50,13 @@ function ReportBarChart({
   };
 
   return (
-    // Mantém 500px de altura
     <div className="results-table-container" style={{ height: '500px', padding: '1rem' }}>
       <ResponsiveContainer width="100%" height="100%">
-        {/* =======================================================
-            MARGEM ESQUERDA REINTRODUZIDA PARA DAR ESPAÇO
-           ======================================================= */}
+        {}
         <BarChart
           data={formattedData}
           layout="vertical"
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }} // <-- Margem Esquerda de 350px
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }} 
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
 
@@ -67,20 +64,16 @@ function ReportBarChart({
             type="number"
             stroke="#9ca3af"
             tickFormatter={xAxisFormatter}
-            // Não precisa mais da 'unit' aqui, pois foi adicionada no formatador
           />
 
-          {/* =======================================================
-              YAXIS SIMPLIFICADO NOVAMENTE (SEM WIDTH, SEM PADDING, SEM DX)
-              A 'margin' no BarChart dará o espaço necessário
-             ======================================================= */}
+          {}
           <YAxis
             dataKey={nameKey} // Usa o nameKey dinâmico
             type="category"
             stroke="#9ca3af"
             interval={0}
             axisLine={false}
-            tick={{ fontSize: 10 }} // Apenas tamanho da fonte
+            tick={{ fontSize: 10 }} 
             tickMargin={15}       // Pequeno espaço entre eixo e texto
           />
 
