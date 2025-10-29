@@ -1,38 +1,25 @@
--- 1. Cria a estrutura da Visão Materializada
--- Esta view pré-agrega e junta os dados de vendas, produtos, lojas e canais para performance.
--- Usamos 'WITH NO DATA' para criar a estrutura instantaneamente.
+-- 1. Cria a estrutura da Visão Materializada (com a chave única product_sale_id)
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_analytics_summary AS
 SELECT
-    -- IDs principais para joins e indexação
+    ps.id AS product_sale_id, -- Chave única
     s.id AS sale_id,
     ps.product_id,
     s.store_id,
     s.channel_id,
-
-    -- Dimensões (Nomes para agrupamento)
     p.name AS product_name,
     st.name AS store_name,
     c.name AS channel_name,
-
-    -- Métricas (Valores para agregação)
-    s.total_amount,          -- Valor total da *venda*
-    ps.quantity,             -- Quantidade deste *produto*
-    ps.total_price AS product_total_price, -- Valor total deste *produto*
-
-    -- Status
+    s.total_amount,
+    ps.quantity,
+    ps.total_price AS product_total_price,
     s.sale_status_desc,
-
-    -- Timestamps & Partes Extraídas (para filtros e agrupamentos de data)
     s.created_at,
     DATE(s.created_at) AS sale_date,
-    EXTRACT(DOW FROM s.created_at) AS day_of_week, -- 0=Domingo, 1=Segunda, ...
+    EXTRACT(DOW FROM s.created_at) AS day_of_week,
     EXTRACT(HOUR FROM s.created_at) AS hour_of_day,
     EXTRACT(MONTH FROM s.created_at) AS month,
-    
-    -- Métricas Operacionais (convertidas para minutos)
     (s.production_seconds / 60.0) AS production_minutes,
     (s.delivery_seconds / 60.0) AS delivery_minutes
-
 FROM
     product_sales ps
 JOIN
@@ -46,6 +33,15 @@ JOIN
 WITH NO DATA;
 
 -- 2. Popula a Visão Materializada pela primeira vez
--- Este é o comando que o README.md espera que esteja neste arquivo.
--- Ele carrega os dados na view que acabamos de criar.
 REFRESH MATERIALIZED VIEW mv_analytics_summary;
+
+-- 3. Cria o índice único (ESSENCIAL para refresh CONCURRENTLY)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_summary_unique ON mv_analytics_summary(product_sale_id);
+
+-- 4. ADICIONA ÍNDICES PARA PERFORMANCE (O NOVO FIX)
+-- Índices para os filtros da API
+CREATE INDEX IF NOT EXISTS idx_mv_summary_sale_date ON mv_analytics_summary(sale_date);
+CREATE INDEX IF NOT EXISTS idx_mv_summary_store_id ON mv_analytics_summary(store_id);
+CREATE INDEX IF NOT EXISTS idx_mv_summary_channel_id ON mv_analytics_summary(channel_id);
+-- Índice para a query de KPIs
+CREATE INDEX IF NOT EXISTS idx_mv_summary_status ON mv_analytics_summary(sale_status_desc);
