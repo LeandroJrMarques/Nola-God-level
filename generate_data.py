@@ -87,6 +87,17 @@ def setup_base_data(conn):
     print("Setting up base data...")
     cursor = conn.cursor()
     
+    # !!! CORREÇÃO ADICIONADA AQUI !!!
+    # Insert the main brand first
+    try:
+        cursor.execute(
+            "INSERT INTO brands (id, name) VALUES (%s, %s) ON CONFLICT (id) DO NOTHING",
+            (BRAND_ID, 'Challenge Brand')  # BRAND_ID é 1
+        )
+    except Exception as e:
+        print(f"Warning: Could not insert brand, maybe it already exists. {e}")
+    # !!! FIM DA CORREÇÃO !!!
+    
     # Sub-brands
     sub_brands = ['Challenge Burger', 'Challenge Pizza', 'Challenge Sushi']
     sub_brand_ids = []
@@ -114,7 +125,7 @@ def setup_base_data(conn):
     # Payment types
     for pt in PAYMENT_TYPES_LIST:
         cursor.execute(
-            "INSERT INTO payment_types (brand_id, description) VALUES (%s, %s)",
+            "INSERT INTO payment_types (brand_id, description) VALUES (%s, %s) ON CONFLICT (description) DO NOTHING",
             (BRAND_ID, pt)
         )
     
