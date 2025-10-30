@@ -29,7 +29,7 @@ Siga estes passos **exatamente** pela ordem indicada. É necessário ter o **Doc
 
 ```bash
 git clone https://github.com/LeandroJrMarques/Nola-God-level
-cd <NOME_DA_PASTA_DO_PROJETO>
+cd /LeandroJrMarques/Nola-God-level
 ````
 
 ### 2\. Iniciar a Base de Dados e Gerar os Dados (Docker)
