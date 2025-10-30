@@ -114,10 +114,10 @@ A aplicação deverá carregar, mostrando o Painel Principal.
 
 ## 📄 Documentação Adicional
 
-  * **Decisões Arquiteturais:** Consulte o ficheiro [ARQUITETURA.md](./ARQUITETURA.md) para uma explicação detalhada das escolhas técnicas.
-  * **Contexto do Problema:** [PROBLEMA.md](./PROBLEMA.md)
-  * **Detalhes dos Dados:** [DADOS.md](./DADOS.md)
-  * **Critérios de Avaliação:** [AVALIACAO.md](./AVALIACAO.md)
+  * **Decisões Arquiteturais:** Consulte o ficheiro [ARQUITETURA.md](./documentação/ARQUITETURA.md) para uma explicação detalhada das escolhas técnicas.
+  * **Contexto do Problema:** [PROBLEMA.md](./documentação/PROBLEMA.md)
+  * **Detalhes dos Dados:** [DADOS.md](./documentação/DADOS.md)
+  * **Critérios de Avaliação:** [AVALIACAO.md](./documentação/AVALIACAO.md)
 
 -----
 
