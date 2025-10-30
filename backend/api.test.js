@@ -9,33 +9,32 @@ const api = request('http://localhost:3001');
 
 describe('API Endpoints', () => {
 
-  // Teste "Smoke" para um endpoint principal
+
   it('GET /api/kpis - deve retornar os KPIs principais', async () => {
     const res = await api.get('/api/kpis');
     
     expect(res.statusCode).toBe(200);
     expect(res.body).toBeInstanceOf(Object);
-    // Verifica se a estrutura de dados esperada está presente
     expect(res.body).toHaveProperty('totalRevenue');
     expect(res.body).toHaveProperty('totalSales');
     expect(res.body).toHaveProperty('averageTicket');
     expect(res.body).toHaveProperty('cancellationRate');
   });
 
-  // Teste para um endpoint de filtros
+
   it('GET /api/filters/stores - deve retornar uma lista de lojas', async () => {
     const res = await api.get('/api/filters/stores');
     
     expect(res.statusCode).toBe(200);
     expect(res.body).toBeInstanceOf(Array);
-    // Se houver dados, verifica a estrutura do primeiro item
+
     if (res.body.length > 0) {
       expect(res.body[0]).toHaveProperty('store_id');
       expect(res.body[0]).toHaveProperty('store_name');
     }
   });
 
-  // Teste para um endpoint de relatório (sem filtros)
+
   it('GET /api/reports/top-products - deve retornar 200 OK', async () => {
     const res = await api.get('/api/reports/top-products?limit=5');
     
@@ -43,14 +42,14 @@ describe('API Endpoints', () => {
     expect(res.body).toBeInstanceOf(Array);
   });
 
-  // Teste para um endpoint de relatório (com filtros)
+
   it('GET /api/reports/average-ticket - deve aplicar filtros e agrupamento', async () => {
     const res = await api
       .get('/api/reports/average-ticket')
       .query({
         groupBy: 'channel_name',
         limit: 3,
-        store_id: 1 // Assumindo que existe uma loja com ID 1
+        store_id: 1 
       });
       
     expect(res.statusCode).toBe(200);
@@ -61,13 +60,12 @@ describe('API Endpoints', () => {
     }
   });
 
-  // Teste de validação (MUITO IMPORTANTE)
-  // O seu código já trata disto
+
   it('GET /api/reports/top-products - deve retornar 400 para groupBy inválido', async () => {
     const res = await api
       .get('/api/reports/top-products')
       .query({
-        groupBy: 'INVALID_COLUMN_NAME' // Parâmetro inválido
+        groupBy: 'INVALID_COLUMN_NAME' 
       });
       
     expect(res.statusCode).toBe(400);
@@ -78,7 +76,7 @@ describe('API Endpoints', () => {
     const res = await api
       .get('/api/reports/delivery-performance')
       .query({
-        sortBy: 'INVALID_COLUMN_NAME' // Parâmetro inválido
+        sortBy: 'INVALID_COLUMN_NAME' 
       });
       
     expect(res.statusCode).toBe(400);
