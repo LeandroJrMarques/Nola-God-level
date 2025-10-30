@@ -117,11 +117,10 @@ A aplicação deverá carregar, mostrando o Painel Principal.
   * **Decisões Arquiteturais:** Consulte o ficheiro [ARQUITETURA.md](./documentação/ARQUITETURA.md) para uma explicação detalhada das escolhas técnicas.
   * **Contexto do Problema:** [PROBLEMA.md](./documentação/PROBLEMA.md)
   * **Detalhes dos Dados:** [DADOS.md](./documentação/DADOS.md)
-  * **Critérios de Avaliação:** [AVALIACAO.md](./documentação/AVALIACAO.md)
 
 -----
 
 *Nola • 2025*
 
-```
+
 
