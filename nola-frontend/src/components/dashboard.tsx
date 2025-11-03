@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import KpiCard from './KpiCard';
-import SalesChart from './saleschart'; 
+import SalesChart from './saleschart';
 import { formatCurrency, formatPercent, formatNumber } from '../utils/formatters';
-import { 
-  FiDollarSign, 
-  FiShoppingCart, 
-  FiCreditCard, 
+import {
+  FiDollarSign,
+  FiShoppingCart,
+  FiCreditCard,
   FiXCircle,
   FiMenu,
-  FiLoader 
+  FiLoader,
+  FiFilter
 } from 'react-icons/fi';
 
 
@@ -26,8 +27,16 @@ type ChartData = {
   date: string;
   faturamento: string;    
 };
+// FIM DO BLOCO
 
 const API_URL = 'http://localhost:3001';
+
+// Função para obter data de 30 dias atrás no formato YYYY-MM-DD
+const get30DaysAgo = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - 30);
+  return date.toISOString().split('T')[0];
+};
 
 function Dashboard() {
   const [kpiData, setKpiData] = useState<KpiData | null>(null);
@@ -35,18 +44,56 @@ function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // --- NOVOS ESTADOS PARA FILTROS ---
+  // Opções dos filtros
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  
+  // Filtros selecionados
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedOwner, setSelectedOwner] = useState(''); // '' = Todos, 'true' = Própria, 'false' = Franquia
+  const [selectedStartDate, setSelectedStartDate] = useState(get30DaysAgo());
+  const [selectedEndDate, setSelectedEndDate] = useState(new Date().toISOString().split('T')[0]);
+  // ------------------------------------
+
+  // Efeito para buscar as opções dos filtros (cidades) UMA VEZ
+  useEffect(() => {
+    async function fetchFilterOptions() {
+      try {
+        const cityResponse = await fetch(`${API_URL}/api/filters/cities`);
+        if (!cityResponse.ok) throw new Error('Falha ao buscar cidades');
+        const cities: string[] = await cityResponse.json();
+        setCityOptions(cities);
+      } catch (err: any) {
+        console.error("Erro ao buscar filtros:", err);
+      }
+    }
+    fetchFilterOptions();
+  }, []);
+
+  // Efeito principal para buscar os DADOS (KPIs e Gráfico)
   useEffect(() => {
     async function fetchData() {
       try {
         setIsLoading(true);
         setError(null);
 
-        const kpiResponse = await fetch(`${API_URL}/api/kpis`);
+        // Constrói os parâmetros de busca
+        const params = new URLSearchParams();
+        if (selectedCity) params.append('city', selectedCity);
+        if (selectedOwner) params.append('is_own', selectedOwner);
+        if (selectedStartDate) params.append('startDate', selectedStartDate);
+        if (selectedEndDate) params.append('endDate', selectedEndDate);
+
+        const queryString = params.toString();
+
+        // Busca KPIs com filtros
+        const kpiResponse = await fetch(`${API_URL}/api/kpis?${queryString}`);
         if (!kpiResponse.ok) throw new Error('Falha ao buscar KPIs');
         const kpis: KpiData = await kpiResponse.json();
         setKpiData(kpis);
 
-        const chartResponse = await fetch(`${API_URL}/api/sales-over-time`);
+        // Busca Gráfico com filtros
+        const chartResponse = await fetch(`${API_URL}/api/sales-over-time?${queryString}`);
         if (!chartResponse.ok) throw new Error('Falha ao buscar dados do gráfico');
         const chart: ChartData[] = await chartResponse.json();
         setChartData(chart);
@@ -60,7 +107,7 @@ function Dashboard() {
     }
 
     fetchData();
-  }, []);
+  }, [selectedCity, selectedOwner, selectedStartDate, selectedEndDate]); // Gatilho
 
 
   if (isLoading) {
@@ -79,8 +126,49 @@ function Dashboard() {
         <h1>Dashboard</h1>
         <p>Overview completo do seu negócio</p>
       </header>
+      
+      {/* --- NOVA SEÇÃO DE FILTROS --- */}
+      <div className="filter-bar">
+        <div className="filter-group">
+          <label htmlFor="startDate">De:</label>
+          <input 
+            type="date" 
+            id="startDate"
+            value={selectedStartDate}
+            onChange={(e) => setSelectedStartDate(e.target.value)}
+          />
+        </div>
+        <div className="filter-group">
+          <label htmlFor="endDate">Até:</label>
+          <input 
+            type="date" 
+            id="endDate"
+            value={selectedEndDate}
+            onChange={(e) => setSelectedEndDate(e.target.value)}
+          />
+        </div>
+        <div className="filter-group">
+          <label htmlFor="cityFilter">Cidade (Região):</label>
+          <select id="cityFilter" value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)}>
+            <option value="">Todas as Cidades</option>
+            {cityOptions.map(city => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+          </select>
+        </div>
+        <div className="filter-group">
+          <label htmlFor="ownerFilter">Tipo (Dono):</label>
+          <select id="ownerFilter" value={selectedOwner} onChange={(e) => setSelectedOwner(e.target.value)}>
+            <option value="">Todos os Tipos</option>
+            <option value="true">Loja Própria</option>
+            <option value="false">Franquia</option>
+          </select>
+        </div>
+      </div>
+      {/* --------------------------- */}
 
-{/* Grelha de KPIs com dados reais */}
+
+      {/* Grelha de KPIs com dados reais */}
       <div className="kpi-grid">
         <KpiCard
           title="Total Revenue"
@@ -107,11 +195,11 @@ function Dashboard() {
           iconBgColor="#ef4444"
         />
       </div>
-      
+
       {/* Gráfico com dados reais */}
       <div className="chart-container">
         <h2>Vendas ao Longo do Tempo</h2>
-        <p>Faturamento dos últimos 30 dias</p>
+        <p>Faturamento para o período e filtros selecionados</p>
         <SalesChart data={chartData} /> {}
       </div>
     </div>

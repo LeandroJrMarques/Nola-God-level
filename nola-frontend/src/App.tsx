@@ -8,16 +8,15 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* O Layout agora "envolve" todas as nossas páginas */}
+        {/* O Layout agora envolve todas as páginas */}
         <Route path="/" element={<Layout />}>
 
-          {/* Rota principal (ex: localhost:5173/) */}
+          {/* Rota principal */}
           <Route index element={<Dashboard />} />
 
-          {/* Rota de Exploração (ex: localhost:5173/explorar) */}
+          {/* Rota de Exploração */}
           <Route path="explorer" element={<Explore />} />
 
-          {/* (Pode adicionar mais rotas aqui depois) */}
         </Route>
       </Routes>
     </BrowserRouter>

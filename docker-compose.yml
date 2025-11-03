@@ -1,3 +1,4 @@
+version: '3.8'
 
 services:
   postgres:
@@ -29,12 +30,21 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://challenge:challenge_2024@postgres:5432/challenge_db
+      # Adicionada a senha para o comando psql
+      PGPASSWORD: challenge_2024 
     command: >
       sh -c "
         echo 'Waiting for database to be ready...' &&
         sleep 5 &&
         echo 'Generating challenge data...' &&
-        python generate_data.py --db-url postgresql://challenge:challenge_2024@postgres:5432/challenge_db
+        python generate_data.py --db-url postgresql://challenge:challenge_2024@postgres:5432/challenge_db &&
+        echo 'Data generation complete.' &&
+        echo 'Refreshing materialized view...' &&
+        
+        # Atualiza a view após a geração dos dados
+        psql -h postgres -U challenge -d challenge_db -c 'REFRESH MATERIALIZED VIEW mv_analytics_summary;' &&
+        
+        echo 'Materialized view refreshed.'
       "
     profiles:
       - tools

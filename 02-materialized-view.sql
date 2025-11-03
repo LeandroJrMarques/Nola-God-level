@@ -9,6 +9,13 @@ SELECT
     p.name AS product_name,
     st.name AS store_name,
     c.name AS channel_name,
+
+    -- NOVAS COLUNAS PARA FILTRO --
+    st.city,
+    st.state,
+    st.is_own,
+    -------------------------------
+
     s.total_amount,
     ps.quantity,
     ps.total_price AS product_total_price,
@@ -38,10 +45,14 @@ REFRESH MATERIALIZED VIEW mv_analytics_summary;
 -- 3. Cria o índice único (ESSENCIAL para refresh CONCURRENTLY)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_summary_unique ON mv_analytics_summary(product_sale_id);
 
--- 4. ADICIONA ÍNDICES PARA PERFORMANCE (O NOVO FIX)
+-- 4. ADICIONA ÍNDICES PARA PERFORMANCE
 -- Índices para os filtros da API
 CREATE INDEX IF NOT EXISTS idx_mv_summary_sale_date ON mv_analytics_summary(sale_date);
 CREATE INDEX IF NOT EXISTS idx_mv_summary_store_id ON mv_analytics_summary(store_id);
 CREATE INDEX IF NOT EXISTS idx_mv_summary_channel_id ON mv_analytics_summary(channel_id);
--- Índice para a query de KPIs
 CREATE INDEX IF NOT EXISTS idx_mv_summary_status ON mv_analytics_summary(sale_status_desc);
+
+-- NOVOS ÍNDICES PARA FILTROS DO DASHBOARD --
+CREATE INDEX IF NOT EXISTS idx_mv_summary_city ON mv_analytics_summary(city);
+CREATE INDEX IF NOT EXISTS idx_mv_summary_state ON mv_analytics_summary(state);
+CREATE INDEX IF NOT EXISTS idx_mv_summary_is_own ON mv_analytics_summary(is_own);

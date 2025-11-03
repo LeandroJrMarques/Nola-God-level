@@ -2,12 +2,6 @@
  * =======================================================================
  * API DE ANALYTICS - GOD LEVEL CODER CHALLENGE
  * =======================================================================
- * * Arquitetura:
- * 1. O PostgreSQL armazena dados brutos (ex: 'sales')
- * 2. Uma 'Materialized View' ('mv_analytics_summary') pré-agrega os dados.
- * 3. Esta API Node.js/Express consulta *apenas* a 'Materialized View'
- * para garantir performance (<1s), conforme os requisitos.
- * 4. Um 'node-cron' atualiza a 'Materialized View' em segundo plano.
  */
 
 const express = require('express');
@@ -25,7 +19,7 @@ app.use(express.json()); // Permite que a API entenda JSON
 // Configuração do Banco de Dados
 const pool = new Pool({
   user: 'challenge',
-  host: 'localhost',
+  host: 'localhost', // Mantenha localhost, pois o backend roda fora do Docker
   database: 'challenge_db',
   password: 'challenge_2024',
   port: 5432,
@@ -40,7 +34,11 @@ const pool = new Pool({
 const buildWhereClause = (queryParams) => {
   const {
     startDate, endDate, store_id, channel_id,
-    day_of_week, hour_of_day
+    day_of_week, hour_of_day,
+    // Filtros do Dashboard
+    city,
+    state,
+    is_own
   } = queryParams;
 
   const conditions = [];
@@ -73,6 +71,20 @@ const buildWhereClause = (queryParams) => {
     values.push(parseInt(hour_of_day));
   }
 
+  // Filtros do Dashboard
+  if (city && city !== '') {
+    conditions.push(`city = $${paramIndex++}`);
+    values.push(city);
+  }
+  if (state && state !== '') {
+    conditions.push(`state = $${paramIndex++}`);
+    values.push(state);
+  }
+  if (is_own && is_own !== '') {
+    conditions.push(`is_own = $${paramIndex++}`);
+    values.push(is_own === 'true'); // Converte string 'true'/'false' para boolean
+  }
+
   const text = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   // Retorna paramIndex para sabermos qual o próximo índice a usar para o LIMIT
   return { text, values, paramIndex };
@@ -80,21 +92,20 @@ const buildWhereClause = (queryParams) => {
 
 
 // =======================================================================
-// ENDPOINTS DA API
+// ENDPOINTS DA API (PARA PÁGINA EXPLORAR)
 // =======================================================================
 
 const router = express.Router();
 
 /**
  * Endpoint: Top N Itens (Produtos, Lojas, Canais)
- * Agora suporta 'groupBy' para agrupar por loja, canal, etc.
  */
 router.get('/top-products', async (req, res) => {
   const {
-    sortBy = 'total_revenue', // total_revenue ou total_quantity
+    sortBy = 'total_revenue',
     order = 'DESC',
     limit = 10,
-    groupBy = 'product_name' // Padrão é product_name
+    groupBy = 'product_name'
   } = req.query;
 
   // Validação de segurança
@@ -108,10 +119,8 @@ router.get('/top-products', async (req, res) => {
     return res.status(400).send('Parâmetros de ordenação ou agrupamento inválidos.');
   }
 
-  // Usamos paramIndex retornado pelo helper
   const { text, values, paramIndex } = buildWhereClause(req.query);
 
-  // A query agora é dinâmica no SELECT e GROUP BY
   const query = `
     SELECT
       ${groupBy},
@@ -125,11 +134,10 @@ router.get('/top-products', async (req, res) => {
     ORDER BY
       ${sortBy} ${order}
     LIMIT
-      $${paramIndex}; -- O 'limit' usa o próximo índice disponível
+      $${paramIndex};
   `;
 
   try {
-    // Adiciona o 'limit' ao final do array de valores
     const allValues = [...values, parseInt(limit)];
     const result = await pool.query(query, allValues);
     res.json(result.rows);
@@ -145,8 +153,8 @@ router.get('/top-products', async (req, res) => {
 router.get('/average-ticket', async (req, res) => {
   const {
       groupBy = 'sale_date',
-      limit = 10, // Adiciona limite aqui também
-      sortBy = 'average_ticket', // Permite ordenar
+      limit = 10,
+      sortBy = 'average_ticket',
       order = 'DESC'
   } = req.query;
 
@@ -184,20 +192,15 @@ router.get('/average-ticket', async (req, res) => {
   }
 });
 
-// =======================================================================
-//          *** ROTA /delivery-performance CORRIGIDA ***
-// =======================================================================
 /**
  * Endpoint: Performance de Tempo Operacional (Entrega / Produção)
- * AGORA COM LIMIT E ORDER BY
  */
 router.get('/delivery-performance', async (req, res) => {
-  // 1. ADICIONADAS AS NOVAS PROPRIEDADES DE QUERY
   const {
     groupBy = 'sale_date',
     limit = 10,
-    sortBy = 'avg_delivery_time', // Padrão para ordenar pelo tempo de entrega
-    order = 'DESC' // Padrão para mostrar os MAIS LENTOS primeiro
+    sortBy = 'avg_delivery_time',
+    order = 'DESC'
   } = req.query;
 
   // Validação de segurança
@@ -211,10 +214,8 @@ router.get('/delivery-performance', async (req, res) => {
     return res.status(400).send('Parâmetro "groupBy", "sortBy" ou "order" inválido.');
   }
 
-  // Obtém a cláusula WHERE dos filtros e o próximo índice de parâmetro
   const { text: whereClauseText, values, paramIndex } = buildWhereClause(req.query);
 
-  // Lógica para combinar a cláusula WHERE
   let finalWhereClause = whereClauseText;
   const performanceCondition = "(delivery_minutes IS NOT NULL OR production_minutes IS NOT NULL)";
   if (finalWhereClause) {
@@ -223,7 +224,6 @@ router.get('/delivery-performance', async (req, res) => {
     finalWhereClause = `WHERE ${performanceCondition}`;
   }
 
-  // 2. QUERY ATUALIZADA COM ORDER BY E LIMIT
   const query = `
     SELECT
       ${groupBy},
@@ -237,11 +237,10 @@ router.get('/delivery-performance', async (req, res) => {
     ORDER BY
       ${sortBy} ${order}
     LIMIT
-      $${paramIndex}; -- O 'limit' usa o próximo índice ($1, $2, etc.)
+      $${paramIndex};
   `;
 
   try {
-    // Adiciona o 'limit' ao final do array de valores
     const allValues = [...values, parseInt(limit)];
     const result = await pool.query(query, allValues);
     res.json(result.rows);
@@ -250,9 +249,6 @@ router.get('/delivery-performance', async (req, res) => {
     res.status(500).send(err.message);
   }
 });
-// =======================================================================
-//          *** FIM DA ROTA CORRIGIDA ***
-// =======================================================================
 
 /**
  * Endpoint: Clientes Em Risco (Churn)
@@ -284,22 +280,26 @@ router.get('/at-risk-customers', async (req, res) => {
   }
 });
 
+// Registra todas as rotas de relatórios sob o prefixo /api/reports
+app.use('/api/reports', router);
+
 // =======================================================================
-// ENDPOINTS SIMPLES PARA O DASHBOARD PRINCIPAL
+// ENDPOINTS PARA O DASHBOARD PRINCIPAL
 // =======================================================================
 app.get('/api/kpis', async (req, res) => {
   try {
+    const whereClause = buildWhereClause(req.query);
+
     const kpiQuery = `
       SELECT
         SUM(CASE WHEN sale_status_desc = 'COMPLETED' THEN total_amount ELSE 0 END) AS "totalRevenue",
-        -- Corrigido para contar vendas únicas
         COUNT(DISTINCT CASE WHEN sale_status_desc = 'COMPLETED' THEN sale_id END) AS "totalSales",
         AVG(CASE WHEN sale_status_desc = 'COMPLETED' THEN total_amount ELSE NULL END) AS "averageTicket",
-        -- Corrigido para calcular taxa sobre vendas únicas
         COUNT(CASE WHEN sale_status_desc = 'CANCELLED' THEN 1 END) * 1.0 / NULLIF(COUNT(DISTINCT sale_id), 0) AS "cancellationRate"
-      FROM mv_analytics_summary;
+      FROM mv_analytics_summary
+      ${whereClause.text};
     `;
-    const { rows } = await pool.query(kpiQuery);
+    const { rows } = await pool.query(kpiQuery, whereClause.values);
     res.json(rows[0]);
   } catch (err) {
     console.error('Erro ao buscar KPIs:', err.message);
@@ -309,17 +309,26 @@ app.get('/api/kpis', async (req, res) => {
 
 app.get('/api/sales-over-time', async (req, res) => {
   try {
+    const whereClause = buildWhereClause(req.query);
+    const completedCondition = "sale_status_desc = 'COMPLETED'";
+    let finalWhereText = whereClause.text;
+
+    if (whereClause.text) {
+      finalWhereText += ` AND ${completedCondition}`;
+    } else {
+      finalWhereText = `WHERE ${completedCondition}`;
+    }
+
     const chartQuery = `
       SELECT
         DATE(created_at) AS date,
         SUM(total_amount) AS faturamento
       FROM mv_analytics_summary
-      WHERE created_at >= NOW() - INTERVAL '30 days'
-        AND sale_status_desc = 'COMPLETED'
+      ${finalWhereText}
       GROUP BY DATE(created_at)
       ORDER BY date ASC;
     `;
-    const { rows } = await pool.query(chartQuery);
+    const { rows } = await pool.query(chartQuery, whereClause.values);
     res.json(rows);
   } catch (err) {
     console.error('Erro ao buscar dados do gráfico:', err.message);
@@ -328,8 +337,10 @@ app.get('/api/sales-over-time', async (req, res) => {
 });
 
 // =======================================================================
-// ENDPOINTS DE FILTROS PARA A PÁGINA EXPLORAR
+// ENDPOINTS DE FILTROS (PARA DASHBOARD E EXPLORER)
 // =======================================================================
+
+// *** CÓDIGO CORRIGIDO/RESTAURADO ***
 app.get('/api/filters/stores', async (req, res) => {
   try {
     const query = `SELECT DISTINCT store_id, store_name FROM mv_analytics_summary ORDER BY store_name;`;
@@ -341,6 +352,7 @@ app.get('/api/filters/stores', async (req, res) => {
   }
 });
 
+// *** CÓDIGO CORRIGIDO/RESTAURADO ***
 app.get('/api/filters/channels', async (req, res) => {
   try {
     const query = `SELECT DISTINCT channel_id, channel_name FROM mv_analytics_summary ORDER BY channel_name;`;
@@ -352,8 +364,17 @@ app.get('/api/filters/channels', async (req, res) => {
   }
 });
 
-// Registra todas as rotas de relatórios sob o prefixo /api/reports
-app.use('/api/reports', router);
+// Endpoint de filtro para Cidades (usado no Dashboard)
+app.get('/api/filters/cities', async (req, res) => {
+  try {
+    const query = `SELECT DISTINCT city FROM mv_analytics_summary WHERE city IS NOT NULL ORDER BY city;`;
+    const { rows } = await pool.query(query);
+    res.json(rows.map(r => r.city)); // Retorna um array de strings
+  } catch (err) {
+    console.error('Erro ao buscar cidades:', err.message);
+    res.status(500).json({ error: 'Erro ao buscar cidades' });
+  }
+});
 
 
 // =======================================================================
@@ -387,9 +408,7 @@ app.listen(port, () => {
   console.log(`======================================================================`);
   console.log(`Backend de Performance rodando em http://localhost:${port}`);
   console.log(`API de relatórios disponível em http://localhost:${port}/api/reports`);
+  console.log(`API de filtros: /api/filters/stores, /api/filters/channels, /api/filters/cities`);
   console.log(`======================================================================`);
   console.log(`Lembre-se: A atualização da Materialized View roda a cada 15 minutos.`);
-  console.log(`Certifique-se de ter criado o índice único para CONCURRENTLY funcionar:`);
-  console.log(`  CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_summary_unique ON mv_analytics_summary(sale_id, product_id);`);
-  console.log(`Para a primeira execução, acesse o pgAdmin e rode: REFRESH MATERIALIZED VIEW mv_analytics_summary;`);
 });
