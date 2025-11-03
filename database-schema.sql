@@ -202,7 +202,7 @@ CREATE TABLE delivery_addresses (
 CREATE TABLE payment_types (
     id SERIAL PRIMARY KEY,
     brand_id INTEGER REFERENCES brands(id),
-    description VARCHAR(100) NOT NULL
+    description VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE payments (
